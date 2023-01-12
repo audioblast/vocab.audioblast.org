@@ -19,13 +19,17 @@ if (file_exists("settings/user.css")) {
 
 <body>
 <div id="title" role="banner">
-  <div style="width:100%; height:40px;">
+  <div style="width:100%; height:47px;">
     <a href="/">
     <img src="/images/ontomasticon.svg" id="logo" class="audioblast-flash"/>
     </a>
     <h1 id="site_title"><?php print tu("site_name"); ?></h1>
   </div>
-  <div id="menu"><?php print tu("description"); ?></div>
+  <div id="menu">
+    <p><?php print tu("description"); ?></p>
+    <p>You can ask questions, suggest new terms or propose modifications at our 
+      <a href="https://github.com/audioblast/vocabularies"> GitHub repository</a>.</p>
+  </div>
   <?php
     if (userAllow("administer")) {
       $status = adminSanity();
@@ -60,8 +64,6 @@ switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
     template("api-home.php");
     break;
 }
-
-
 ?>
 
 <div class="feature-container">

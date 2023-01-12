@@ -2,6 +2,11 @@ body {
   margin:0px;
 }
 
+#logo {
+  padding-bottom: unset;
+  padding-top: 5px;
+}
+
 .audioblast-flash {
   height: 37px;
   float: left;
