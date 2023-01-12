@@ -1,0 +1,186 @@
+body {
+  margin:0px;
+}
+
+.audioblast-flash {
+  height: 37px;
+  float: left;
+  padding-right: 3px;
+}
+
+#title {
+  background-color:#888;
+  width:100%;
+  overflow:hidden;
+  margin-bottom:3px;
+}
+
+#title h1 {
+  margin:0px;
+}
+
+a {
+  color: #004080;
+}
+
+#data-table {
+  position: absolute;
+  top: 77px;
+  bottom:0px;
+}
+
+h3 {
+  margin-bottom:3px;
+}
+
+#menu {
+  background-color:#D6D6D6;
+  width:100%;
+  padding:3px;
+}
+
+.home-search {
+  background-color:#D6D6D6;
+  margin:10px;
+  padding:10px;
+  border-bottom-left-radius:25px;
+  border-bottom-right-radius:25px;
+  border-top-left-radius:25px;
+  border-top-right-radius:25px;
+}
+
+#search {
+  height:46px;
+  width:calc(100% - 56px);
+  font-size: 30px;
+  font-weight: 100;
+  border-top-left-radius:5px;
+  border-bottom-left-radius:5px;
+  border:0px;
+  outline-style:none;
+  padding:0px;
+  margin-bottom:3px;
+}
+
+.search-control {
+  padding-right:0px !important;
+}
+
+.search-control ul li {
+  border-top-left-radius:0px !important;
+  border-bottom-left-radius:0px !important;
+}
+
+#search-label {
+  display:none;
+}
+
+summary {
+  cursor:pointer;
+}
+
+#search-suggests-details a {
+  cursor: pointer;
+  border-radius:3px;
+  background-color:darkgray;
+  margin:3px;
+  padding:3px;
+}
+
+#zoom-control {
+  float:right;
+  padding-right:20px;
+}
+
+#zoom-control .ulhoriz {
+  margin:0px;
+  padding:0px;
+}
+
+#zoom-control li {
+  background-color: #888;
+  color:white;
+  width:40px;
+  height:40px;
+  display:inline-block;
+}
+
+#zoom-control li img {
+  height:100%;
+  width:100%;
+}
+
+.audioblast-button:hover {
+  filter: invert(61%) sepia(77%) saturate(1488%) hue-rotate(360deg) brightness(103%) contrast(103%);
+}
+
+.feature {
+  background-color:#D6D6D6;
+  margin:10px;
+  padding:3px;
+  overflow:hidden;
+}
+
+.feature-image {
+  float:left;
+  width: 200px;
+  margin-right:5px;
+}
+
+.feature-container .feature:first-child {
+  border-top-left-radius:25px;
+  border-top-right-radius:25px;
+}
+
+.feature-container .feature:last-child {
+  border-bottom-left-radius:25px;
+  border-bottom-right-radius:25px;
+}
+
+.search-table {
+  height:300px !important;
+  margin-bottom:15px;
+}
+
+
+.module {
+  background: #888;
+  padding: 5px;
+  margin: 10px;
+}
+
+.ulhoriz {
+  padding: 5px;
+  margin:0px;
+}
+
+.ulhoriz li {
+  display: inline;
+  padding:3px;
+  border-radius:5px;
+  margin-right: 10px;
+  background-color:#888;
+}
+
+.stripe {
+  border-collapse:collapse;
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.stripe tbody tr:nth-child(even) {
+  background: #AAA;
+}
+
+.stripe tbody tr:nth-child(odd) {
+  background: #DDD;
+}
+
+.tdcent {
+  text-align: center;
+}
+
+.odd {
+  background-color: darkgray;
+}
