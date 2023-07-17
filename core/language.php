@@ -1,0 +1,40 @@
+<?php
+
+function detectLanguage(){
+  $lang = $GLOBALS["ontomasticon"]["config"]["default_lang"];
+
+  if (isset($_GET["lang"])) {
+    $lang = $_GET["lang"];
+  }
+  return($lang);
+}
+
+//Translate interface items
+function t($text) {
+  $lang = detectLanguage();
+  if ($lang == $GLOBALS["ontomasticon"]["config"]["default_lang"]) {
+    return $text;
+  } elseif (file_exists("lang/".$lang.".php")) {
+    if (!isset($GLOBALS["ontomasticon"]["language_data"])) {
+      include("lang/".$lang.".php");
+      $GLOBALS["ontomasticon"]["language_data"] = call_user_func("lang_".$lang);
+    }
+    if (isset($GLOBALS["ontomasticon"]["language_data"][$text])) {
+      return($GLOBALS["ontomasticon"]["language_data"][$text]);
+    } else {
+      return($text);
+    }
+  }
+}
+
+//Translate user-provided content (config variables)
+function tu($type) {
+  $lang = detectLanguage();
+  if ($lang == $GLOBALS["ontomasticon"]["config"]["default_lang"]) {
+    return($GLOBALS["ontomasticon"]["config"][$type]);
+  } elseif (isset($GLOBALS["ontomasticon"]["config"][$type."_".$lang])) {
+    return($GLOBALS["ontomasticon"]["config"][$type."_".$lang]);
+  } else {
+    return($GLOBALS["ontomasticon"]["config"][$type]);
+  }
+}
