@@ -25,7 +25,7 @@ $GLOBALS["ontomasticon"]["CVs"] = getCVs($db);
 $GLOBALS["ontomasticon"]["pageInfo"] = activePage();
 
 switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
-  case "API":
+  case "api":
     template("api.php");
     break;
   case "ping":
