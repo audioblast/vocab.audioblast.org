@@ -1,11 +1,11 @@
 <?php
+
+if ($_SERVER['REQUEST_URI'] == "/ping") {
+  print("pong");
+  exit;
+}
 //Codebase version
 $version = 0.1;
-
-
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
 
 //Check we can connect to the database
 if (file_exists("settings/db.php")) {
@@ -13,6 +13,11 @@ if (file_exists("settings/db.php")) {
 } else {
   print("<p>settings/db.php does not exist!</p>");
   print("<p>Refer to <a href='https://ontomasticon.github.io/installation.html'>Installation instructions.</a></p>");
+  exit;
+}
+
+if ($_SERVER['REQUEST_URI'] == "/dbping" && $db->connect_error) {
+  print("Database connection failed: ".$db->connect_error);
   exit;
 }
 
@@ -28,9 +33,6 @@ switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
   case "api":
     template("api.php");
     break;
-  case "ping":
-    print "pong";
-    exit;
   default:
     template("core.php");
 }
