@@ -6,7 +6,6 @@
 $version = 0.2;
 
 //Check we can connect to the database
-//Check database has been configured
 if (file_exists("settings/db.php")) {
   include("settings/db.php");
 } else {
