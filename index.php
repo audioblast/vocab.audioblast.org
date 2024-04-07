@@ -5,6 +5,9 @@
 //Codebase version
 $version = 0.2;
 
+$hashPassword = password_hash("password",PASSWORD_BCRYPT,$options)
+print($hashPassword);exit;
+
 //Check we can connect to the database
 if (file_exists("settings/db.php")) {
   include("settings/db.php");
