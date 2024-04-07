@@ -1,4 +1,8 @@
 <?php
+// Ontomasticon: a simple, lightweight, PHP-based ontology browser.
+// Department of Information Retrieval
+//
+// Code to handle Controlled Vocabularies (CVs)
 
 function CVcount() {
   global $db;
