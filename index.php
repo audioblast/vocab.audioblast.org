@@ -5,7 +5,7 @@
 //Codebase version
 $version = 0.2;
 
-$hashPassword = password_hash("password",PASSWORD_BCRYPT,$options)
+$hashPassword = password_hash("password",PASSWORD_DEFAULT,$options)
 print($hashPassword);exit;
 
 //Check we can connect to the database
