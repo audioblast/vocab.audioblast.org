@@ -7,10 +7,11 @@
   <p><?php print term2URI($GLOBALS["ontomasticon"]["term"], TRUE); ?></p>
   <p><?php print $GLOBALS["ontomasticon"]["term"]["language"]; ?></p>
   <p><?php print $GLOBALS["ontomasticon"]["term"]["description"]; ?></p>
-
   <?php
+  template("term-fragment-reference.php");
+
   if (is_array($GLOBALS["ontomasticon"]["term"]["children"]) && count($GLOBALS["ontomasticon"]["term"]["children"]) > 0) {
-    ?>
+  ?>
     <h4><?php print t("Related terms"); ?></h4>
     <table>
     <?php

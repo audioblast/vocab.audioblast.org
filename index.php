@@ -1,13 +1,15 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-if ($_SERVER['REQUEST_URI'] == "/ping") {
-  print("pong");
-  exit;
-}
+// Ontomasticon: a simple, lightweight, PHP-based ontology browser.
+// Department of Information Retrieval
+
 //Codebase version
-$version = 0.1;
+$version = 0.2;
 
-//Check we can connect to the database
+//Check database has been configured
 if (file_exists("settings/db.php")) {
   include("settings/db.php");
 } else {
@@ -16,22 +18,23 @@ if (file_exists("settings/db.php")) {
   exit;
 }
 
-if ($_SERVER['REQUEST_URI'] == "/dbping" && $db->connect_error) {
-  print("Database connection failed: ".$db->connect_error);
-  exit;
-}
-
+// Load core functions
 require("core/core.php");
 
+// Load configuration
 $GLOBALS["ontomasticon"]["config"] = getConfig($db);
 $GLOBALS["ontomasticon"]["language"] = detectLanguage();
 $GLOBALS["ontomasticon"]["cv_count"] = CVcount($db);
 $GLOBALS["ontomasticon"]["CVs"] = getCVs($db);
 $GLOBALS["ontomasticon"]["pageInfo"] = activePage();
 
+// Load correct page template
 switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
   case "api":
     template("api.php");
+    break;
+  case "ping":
+    print "pong";
     break;
   default:
     template("core.php");

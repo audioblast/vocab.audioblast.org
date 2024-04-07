@@ -8,15 +8,7 @@ if (isset($_GET["term"])) {
     $term = getTerm(explode("#",$parts[4])[1]);
   }
 } else if (isset($_GET["shortname"])) {
-  $term = getTerm($_GET["shortname"]);
-} else if (isset($_GET["name"])) {
-  $name = mysqli_real_escape_string($db, $_GET["name"]);
-  $sql = "SELECT `shortname` FROM `terms` WHERE `name` = '$name'";
-  $res = $db->query($sql);
-  if ($res->num_rows > 0) {
-    $row = $res->fetch_assoc();
-    $term = getTerm($row["shortname"]);
-  }
+   $term = getTerm($_GET["shortname"]);
 }
 
 $term["url"] = term2URI($term);
