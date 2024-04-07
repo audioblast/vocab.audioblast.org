@@ -1,15 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 // Ontomasticon: a simple, lightweight, PHP-based ontology browser.
 // Department of Information Retrieval
 
 //Codebase version
 $version = 0.2;
 
-//Check database has been configured
+//Check we can connect to the database
 if (file_exists("settings/db.php")) {
   include("settings/db.php");
 } else {
