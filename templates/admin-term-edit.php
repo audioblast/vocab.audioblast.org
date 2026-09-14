@@ -1,10 +1,14 @@
 <h2><?php print t("Terms"); ?></h2>
 
 <?php
-if (!userAllow("administer")) {
+if (!userAllow("edit-terms")) {
   print t("You do not have permission to administer this site");
 } else {
   $sn = getTerm($GLOBALS["ontomasticon"]["pageInfo"]["active_subsubpage"]);
+  if ($sn == null) {
+    print t("No matching term found");
+    goto end;
+  }
   if(isset($_POST['submit'])){
     editTerm();
     $sn = getTerm($GLOBALS["ontomasticon"]["pageInfo"]["active_subsubpage"]);
@@ -14,21 +18,22 @@ if (!userAllow("administer")) {
     goto end;
   }
   if (isset($_POST['delete_term'])){
-    deleteTerm();
-    print "<p>".t("Deleted.")."</p>";
+    if (deleteTerm()) {
+      printStatus(t("Deleted."));
+    }
     goto end;
   }
   ?>
 
-  <h3><?php print t("Edit")." <i>".$sn["shortname"]; ?></i></h3>
-  <form action="<?php echo $_SERVER['PHP_SELF']?>" method="post">
+  <h3><?php print t("Edit")." <i>".h($sn["shortname"]); ?></i></h3>
+  <form action="<?php print formAction(); ?>" method="post"><?php print csrfField(); ?>
     <label for="name"><?php print t("Name"); ?></label><br/>
     <input type="text" id="name" name="name"
-           value="<?php print $sn["name"]; ?>"
+           value="<?php print h($sn["name"]); ?>"
            placeholder="">
            <br/><br/>
     <label for="description"><?php print t("Description"); ?></label><br/>
-    <textarea id="description" name="description" rows="4" cols="50"><?php print $sn["description"];?></textarea><br/>
+    <textarea id="description" name="description" rows="4" cols="50"><?php print h($sn["description"]);?></textarea><br/>
     <label for="language"><?php print t("Language"); ?></label><br/>
     <input type="text" id="language" name="language"
            value="<?php print htmlspecialchars($sn["language"]); ?>"
@@ -41,13 +46,13 @@ if (!userAllow("administer")) {
     <input type="radio" id="nocv" name="cv" value="none" <?php print val2check($sn["cv"], ""); ?>>
     <label for="nocv"><?php print t("None"); ?></label><br/>
     <?php foreach ($GLOBALS["ontomasticon"]["CVs"] as $CV) { ?>
-      <input type="radio" id="<?php print $CV["shortname"]; ?>" name="cv"
-        value="<?php print $CV["shortname"]; ?>" <?php print val2check($sn["cv"], $CV["shortname"]); ?>>
-      <label for="<?php print $CV["shortname"]; ?>"><?php print $CV["name"]; ?></label><br/>
+      <input type="radio" id="<?php print h($CV["shortname"]); ?>" name="cv"
+        value="<?php print h($CV["shortname"]); ?>" <?php print val2check($sn["cv"], $CV["shortname"]); ?>>
+      <label for="<?php print h($CV["shortname"]); ?>"><?php print h($CV["name"]); ?></label><br/>
     <?php }
-    print "<br/"; ?>
+    print "<br/>"; ?>
     <label for="none"><?php print t("Invalidity"); ?></label><br/>
-    <input type="radio" id="none" name="invalid" value="none" <?php print val2check($sn["cv"], ""); ?>>
+    <input type="radio" id="none" name="invalid" value="none" <?php print val2check($sn["invalid_reason"], ""); ?>>
     <label for="none"><?php print t("None"); ?></label><br>
     <input type="radio" id="synonym" name="invalid" value="Synonym" <?php print val2check($sn["invalid_reason"], "Synonym"); ?>>
     <label for="synonym"><?php print t("Synonym"); ?></label><br/><br/>

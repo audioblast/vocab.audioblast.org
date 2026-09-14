@@ -1,21 +1,21 @@
-<?php session_start(); ?>
 <!DOCTYPE html>
-<html lang="<?php print t($GLOBALS["ontomasticon"]["config"]["default_lang"]); ?>">
+<html lang="<?php print h(t($GLOBALS["ontomasticon"]["config"]["default_lang"])); ?>">
 <head>
 <meta charset = "UTF-8">
-<title><?php print tu("site_name"); ?></title>
+<title><?php print h(tu("site_name")); ?></title>
 <meta name="Generator" content="Ontomasticon (https://ontomasticon.github.io/)"/>
-<meta name="author" content="<?php print($GLOBALS["ontomasticon"]["config"]["author"]); ?>">
-<meta name="description" content="<?php print tu("description"); ?>">
+<meta name="author" content="<?php print h($GLOBALS["ontomasticon"]["config"]["author"]); ?>">
+<meta name="description" content="<?php print h(strip_tags(tu("description"))); ?>">
 <link rel="stylesheet" type="text/css" href="/css/default.css" />
 <link rel="icon" type="image/png" href="/images/ontomasticon.png">
 <?php
 if (file_exists("settings/user.css")) {
   ?>
-  <link rel="stylesheet" type="text/css" href="<?php print $GLOBALS["ontomasticon"]["config"]["base_url"]; ?>settings/user.css" />
+  <link rel="stylesheet" type="text/css" href="/settings/user.css" />
   <?php
 }
 ?>
+</head>
 
 <body>
 <div id="header">
@@ -24,6 +24,10 @@ if (file_exists("settings/user.css")) {
 </div>
 
 <?php
+if ($GLOBALS["ontomasticon"]["csrf_failed"]) {
+  print "<div class='error'><p>".t("The form could not be verified. Please reload the page and try again.")."</p></div>";
+}
+
 if (userAllow("administer")) {
   $status = adminSanity();
   if ($status != NULL) {
@@ -70,6 +74,7 @@ switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
 <?php print adminLink(); ?><br/>
 <?php print userLink(); ?><br/>
 <?php print logInOut(); ?>
+</div>
 </body>
 
 </html>
