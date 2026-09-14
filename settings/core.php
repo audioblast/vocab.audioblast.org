@@ -1,12 +1,11 @@
-<?php session_start(); ?>
 <!DOCTYPE html>
-<html lang="<?php print t($GLOBALS["ontomasticon"]["config"]["default_lang"]); ?>">
+<html lang="<?php print h(t($GLOBALS["ontomasticon"]["config"]["default_lang"])); ?>">
 <head>
 <meta charset = "UTF-8">
-<title><?php print tu("site_name"); ?></title>
+<title><?php print h(tu("site_name")); ?></title>
 <meta name="Generator" content="Ontomasticon (https://ontomasticon.github.io/)"/>
-<meta name="author" content="<?php print($GLOBALS["ontomasticon"]["config"]["author"]); ?>">
-<meta name="description" content="<?php print tu("description"); ?>">
+<meta name="author" content="<?php print h($GLOBALS["ontomasticon"]["config"]["author"]); ?>">
+<meta name="description" content="<?php print h(strip_tags(tu("description"))); ?>">
 <link rel="stylesheet" type="text/css" href="/css/default.css" />
 <link rel="icon" type="image/png" href="/images/ontomasticon.png">
 <?php
@@ -16,6 +15,7 @@ if (file_exists("settings/user.css")) {
   <?php
 }
 ?>
+</head>
 
 <body>
 <div id="title" role="banner">
@@ -23,14 +23,18 @@ if (file_exists("settings/user.css")) {
     <a href="/">
     <img src="/images/ontomasticon.svg" id="logo" class="audioblast-flash"/>
     </a>
-    <h1 id="site_title"><?php print tu("site_name"); ?></h1>
+    <h1 id="site_title"><?php print h(tu("site_name")); ?></h1>
   </div>
   <div id="menu">
     <p><?php print tu("description"); ?></p>
-    <p>You can ask questions, suggest new terms or propose modifications at our 
+    <p>You can ask questions, suggest new terms or propose modifications at our
       <a href="https://github.com/audioblast/vocabularies"> GitHub repository</a>.</p>
   </div>
   <?php
+    if ($GLOBALS["ontomasticon"]["csrf_failed"]) {
+      print "<div class='error'><p>".t("The form could not be verified. Please reload the page and try again.")."</p></div>";
+    }
+
     if (userAllow("administer")) {
       $status = adminSanity();
       if ($status != NULL) {
@@ -87,6 +91,7 @@ switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
 <?php print adminLink(); ?><br/>
 <?php print userLink(); ?><br/>
 <?php print logInOut(); ?>
+</div>
 </body>
 
 </html>

@@ -5,25 +5,27 @@
 // Code to handle retreiving, editing and saving terms
 
 function getTerm($shortname) {
-  global $db;
-  $sql = "SELECT * FROM `terms` WHERE `shortname` = '".$shortname."';";
-  $result = $db->query($sql);
+  return(loadTerm("shortname", $shortname));
+}
+
+function getTermByID($id) {
+  return(loadTerm("id", $id));
+}
+
+//Load a term by its shortname or id, with its parent and broader terms given as shortnames
+function loadTerm($column, $value) {
+  if ($column == "id") {
+    $sql = "SELECT * FROM `terms` WHERE `id` = ?;";
+  } else {
+    $sql = "SELECT * FROM `terms` WHERE `shortname` = ?;";
+  }
+  $result = dbQuery($sql, array($value));
   if ($result) {
     $ret = $result->fetch_assoc();
     if ($result->num_rows == 0) {return(null);}
     $result->close();
-    if ($ret["parent"] != "") {
-      $sql = "SELECT `shortname` FROM `terms` WHERE `id` = ".$ret["parent"].";";
-      $res = $db->query($sql);
-      $ret["parent"] = $res->fetch_assoc()["shortname"];
-      $res->close();
-    }
-    if ($ret["broader"] != "") {
-      $sql = "SELECT `shortname` FROM `terms` WHERE `id` = ".$ret["broader"].";";
-      $res = $db->query($sql);
-      $ret["broader"] = $res->fetch_assoc()["shortname"];
-      $res->close();
-    }
+    $ret["parent"] = termShortname($ret["parent"]);
+    $ret["broader"] = termShortname($ret["broader"]);
     return($ret);
   } else {
     return(null);
@@ -31,166 +33,193 @@ function getTerm($shortname) {
 }
 
 function getTerms($cv=null) {
-  global $db;
   if ($cv != null) {
-    $sql  = "SELECT * FROM `terms` WHERE `cv` = '";
-    $sql .= $db->real_escape_string($cv);
-    $sql .= "' AND `invalid_reason` IS NULL ORDER BY `shortname`;";
+    $sql = "SELECT * FROM `terms` WHERE `cv` = ? AND `invalid_reason` IS NULL ORDER BY `shortname`;";
+    $result = dbQuery($sql, array($cv));
   }  else {
-    $sql  = "SELECT * FROM `terms` WHERE `cv` IS NULL AND `invalid_reason` IS NULL;";
+    $sql = "SELECT * FROM `terms` WHERE `cv` IS NULL AND `invalid_reason` IS NULL;";
+    $result = dbQuery($sql);
   }
 
-  $result = $db->query($sql);
+  $ret = array();
   if ($result) {
     $ret = $result->fetch_all(MYSQLI_ASSOC);
     $result->close();
   }
 
-  //Need to add child terms
+  //Fetch related terms for the whole list at once, rather than for each term
+  $ids = array_column($ret, "id");
+  $broaderIds = array();
+  foreach ($ret as $row) {
+    if ($row["broader"] != "") {
+      $broaderIds[] = $row["broader"];
+    }
+  }
+  $broaderIds = array_values(array_unique($broaderIds));
+
+  $children = termsGroupedBy("parent", "SELECT * FROM `terms` WHERE `parent` IN (%s) ORDER BY `invalid_reason`;", $ids);
+  $narrower = termsGroupedBy("broader", "SELECT * FROM `terms` WHERE `broader` IN (%s) AND `invalid_reason` IS NULL ORDER BY `shortname`;", $ids);
+  $broader  = termsGroupedBy("id", "SELECT * FROM `terms` WHERE `id` IN (%s) AND `invalid_reason` IS NULL;", $broaderIds);
+
   $out = array();
   foreach ($ret as $row) {
-    $sql = "SELECT * FROM `terms` WHERE `parent` = ".$row["id"]." ORDER BY `invalid_reason`;";
-    $result = $db->query($sql);
-    if ($result) {
-      $row["children"] = $result->fetch_all(MYSQLI_ASSOC);
-      $result->close();
-    }
-    $sql = "SELECT * FROM `terms` WHERE `broader` = ".$row["id"]." AND `invalid_reason` IS NULL ORDER BY `shortname`;";
-    $result = $db->query($sql);
-    if ($result) {
-      $row["narrower"] = $result->fetch_all(MYSQLI_ASSOC);
-      $result->close();
-    }
+    $row["children"] = isset($children[$row["id"]]) ? $children[$row["id"]] : array();
+    $row["narrower"] = isset($narrower[$row["id"]]) ? $narrower[$row["id"]] : array();
     if ($row["broader"] != "") {
-      $sql = "SELECT * FROM `terms` WHERE `id` = ".$row["broader"]." AND `invalid_reason` IS NULL;";
-      $result = $db->query($sql);
-      if ($result) {
-        $row["broader"] = $result->fetch_all(MYSQLI_ASSOC);
-        $result->close();
-      }
+      $row["broader"] = isset($broader[$row["broader"]]) ? $broader[$row["broader"]] : array();
     }
-  $out[] = $row;
+    $out[] = $row;
   }
   return($out);
 }
 
-function term2URI($term, $link=FALSE) {
-  global $db;
-  $config = getConfig($db);
-  $out = "https://".$config["base_url"];
-  if ($term['cv'] == null) {
-    if ($term["opaque"] == 0) {
-      $out .= $term["shortname"];
-    } else {
-      $out .= $term["id"];
-    }
-  } else {
-    if ($term["opaque"] == 0 ) {
-      $out .= "cv/".$term["cv"]."#".$term["shortname"];
-    } else {
-      $out .= "cv/".$term["cv"]."#".$term["id"];
-    }
+//Run a query for terms matching a list of ids, grouped by one of their columns.
+//$sql must contain a single %s where the id placeholders go.
+function termsGroupedBy($column, $sql, $ids) {
+  $grouped = array();
+  if (count($ids) == 0) {
+    return($grouped);
   }
+  $placeholders = implode(", ", array_fill(0, count($ids), "?"));
+  $result = dbQuery(sprintf($sql, $placeholders), $ids);
+  if ($result) {
+    foreach ($result->fetch_all(MYSQLI_ASSOC) as $term) {
+      $grouped[$term[$column]][] = $term;
+    }
+    $result->close();
+  }
+  return($grouped);
+}
+
+//The URI of a term given as a row of the terms table, or a link to it
+function term2URI($term, $link=FALSE) {
+  $out = Term::fromRow($term)->uri();
   return(($link) ? l($out, $out) : $out);
 }
 
-function editTerm() {
-  global $db;
-  $shortname = $GLOBALS["ontomasticon"]["pageInfo"]["active_subsubpage"];
-  $name = $db->real_escape_string(trim($_POST['name']));
-  $description = $db->real_escape_string(trim($_POST['description']));
-  $language = $db->real_escape_string(trim($_POST['language']));
-  $opaque = (isset($_POST["opaque"]) ? 1 : 0);
-  $cv = ((!isset($_POST["cv"]) || $_POST["cv"]=="none") ? "" : $db->real_escape_string(trim($_POST['cv'])));
-  $invalid = ((!isset($_POST["invalid"]) || $_POST["invalid"]=="none") ? "" : $db->real_escape_string(trim($_POST['invalid'])));
-  $parent = $db->real_escape_string(trim($_POST['parent']));
-  $broader = $db->real_escape_string(trim($_POST['broader']));
-  $reference = $db->real_escape_string(trim($_POST['reference']));
+//Look up the id of a term from its shortname, or NULL if there is no match
+function termID($shortname) {
+  $result = dbQuery("SELECT `id` FROM `terms` WHERE `shortname` = ?;", array($shortname));
+  if ($result && $row = $result->fetch_assoc()) {
+    return($row["id"]);
+  }
+  return(null);
+}
 
-  $sql  = "UPDATE `terms` SET ";
-  $sql .= "`name` = '".$name."', ";
-  $sql .= "`description` = '".$description."', ";
-  $sql .= "`language` = '".$language."', ";
-  $sql .= "`opaque` = '".$opaque."', ";
-  if ($invalid == "") {
-    $sql .= "`invalid_reason` = NULL, ";
-  } else {
-    $sql .= "`invalid_reason` = '".$invalid."', ";
+//Look up the shortname of a term from its id, or NULL if there is no match
+function termShortname($id) {
+  if ($id === null || $id === "") {
+    return(null);
   }
-  if ($cv == "") {
-    $sql .= "`cv` = NULL, ";
-  } else {
-    $sql .= "`cv` = '".$cv."', ";
+  $result = dbQuery("SELECT `shortname` FROM `terms` WHERE `id` = ?;", array($id));
+  if ($result && $row = $result->fetch_assoc()) {
+    return($row["shortname"]);
   }
-  if ($_POST["parent"] != "") {
-    $sql2 = "SELECT id FROM terms WHERE shortname = '".$parent."';";
-    $res2 = $db->query($sql2);
-    $sql .= "`parent` = ".$res2->fetch_assoc()["id"].", ";
-  } else {
-    $sql .= "`parent` = NULL, ";
+  return(null);
+}
+
+//Look up the ids of the parent and broader terms named in a term form.
+//Prints an error and returns NULL if a named term doesn't exist.
+function termRelations() {
+  $ids = array();
+  foreach (array("parent", "broader") as $field) {
+    $shortname = trim($_POST[$field]);
+    $ids[$field] = ($shortname == "") ? null : termID($shortname);
+    if ($shortname != "" && $ids[$field] === null) {
+      printError(t("Not saved. There is no term with the short name")." ".$shortname);
+      return(null);
+    }
   }
-  if ($_POST["broader"] != "") {
-    $sql2 = "SELECT id FROM terms WHERE shortname = '".$broader."';";
-    $res2 = $db->query($sql2);
-    $sql .= "`broader` = ".$res2->fetch_assoc()["id"].", ";
-  } else {
-    $sql .= "`broader` = NULL, ";
+  return($ids);
+}
+
+function editTerm() {
+  $relations = termRelations();
+  if ($relations === null) {
+    return(FALSE);
   }
-  $sql .= "`reference` = '".$reference."' ";
-  $sql .= "WHERE `shortname` = '".$shortname."';";
-  $res = $db->query($sql);
+  $shortname = $GLOBALS["ontomasticon"]["pageInfo"]["active_subsubpage"];
+  $name = trim($_POST['name']);
+  $description = trim($_POST['description']);
+  $language = trim($_POST['language']);
+  $opaque = (isset($_POST["opaque"]) ? 1 : 0);
+  $cv = ((!isset($_POST["cv"]) || $_POST["cv"]=="none") ? "" : trim($_POST['cv']));
+  $invalid = ((!isset($_POST["invalid"]) || $_POST["invalid"]=="none") ? "" : trim($_POST['invalid']));
+  $reference = trim($_POST['reference']);
+
+  $sql  = "UPDATE `terms` SET `name` = ?, `description` = ?, `language` = ?, `opaque` = ?, ";
+  $sql .= "`invalid_reason` = ?, `cv` = ?, `parent` = ?, `broader` = ?, `reference` = ? ";
+  $sql .= "WHERE `shortname` = ?;";
+  return(reportSaved(dbQuery($sql, array(
+    $name,
+    $description,
+    $language,
+    $opaque,
+    ($invalid == "") ? null : $invalid,
+    ($cv == "") ? null : $cv,
+    $relations["parent"],
+    $relations["broader"],
+    $reference,
+    $shortname
+  ))));
 }
 
 function addTerm() {
-  global $db;
-  $shortname = $db->real_escape_string(trim($_POST['shortname']));
-  $name = $db->real_escape_string(trim($_POST['name']));
-  $description = $db->real_escape_string(trim($_POST['description']));
-  $language = $db->real_escape_string(trim($_POST['language']));
+  $shortname = trim($_POST['shortname']);
+  if ($shortname == "") {
+    printError(t("Not saved. A short name is required."));
+    return(FALSE);
+  }
+  if (termID($shortname) !== null) {
+    printError(t("Not saved. There is already a term with the short name")." ".$shortname);
+    return(FALSE);
+  }
+  $relations = termRelations();
+  if ($relations === null) {
+    return(FALSE);
+  }
+  $name = trim($_POST['name']);
+  $description = trim($_POST['description']);
+  $language = trim($_POST['language']);
   $opaque = (isset($_POST["opaque"]) ? 1 : 0);
-  $cv = ((!isset($_POST["cv"]) || $_POST["cv"]=="none") ? "" : $db->real_escape_string(trim($_POST['cv'])));
-  $invalid = ((!isset($_POST["invalid"]) || $_POST["invalid"]=="none") ? "" : $db->real_escape_string(trim($_POST['invalid'])));
-  $parent = $db->real_escape_string(trim($_POST['parent']));
-  $broader = $db->real_escape_string(trim($_POST['broader']));
+  $cv = ((!isset($_POST["cv"]) || $_POST["cv"]=="none") ? "" : trim($_POST['cv']));
+  $invalid = ((!isset($_POST["invalid"]) || $_POST["invalid"]=="none") ? "" : trim($_POST['invalid']));
+  $reference = trim($_POST['reference']);
 
-  $sql  = "INSERT INTO `terms` (`shortname`, `name`, `description`, `language`, `opaque`, `invalid_reason`, `cv`, `parent`, `broader`) VALUES ( ";
-  $sql .= "'".$shortname."', ";
-  $sql .= "'".$name."', ";
-  $sql .= "'".$description."', ";
-  $sql .= "'".$language."', ";
-  $sql .= "'".$opaque."', ";
-  if ($invalid == "") {
-    $sql .= "NULL, ";
-  } else {
-    $sql .= "'".$invalid."', ";
-  }
-  if ($cv == "") {
-    $sql .= "NULL, ";
-  } else {
-    $sql .= "'".$cv."', ";
-  }
-  if ($_POST["parent"] != "") {
-    $sql2 = "SELECT id FROM terms WHERE shortname = '".$_POST["parent"]."';";
-    $res2 = $db->query($sql2);
-    $sql .= $res2->fetch_assoc()["id"].", ";
-  } else {
-    $sql .= "NULL, ";
-  }
-  if ($_POST["broader"] != "") {
-    $sql2 = "SELECT id FROM terms WHERE shortname = '".$_POST["broader"]."';";
-    $res2 = $db->query($sql2);
-    $sql .= $res2->fetch_assoc()["id"];
-  } else {
-    $sql .= "NULL";
-  }
-  $sql .= ");";
-  $res = $db->query($sql);
+  $sql  = "INSERT INTO `terms` (`shortname`, `name`, `description`, `language`, `opaque`, `invalid_reason`, `cv`, `parent`, `broader`, `reference`) ";
+  $sql .= "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+  return(reportSaved(dbQuery($sql, array(
+    $shortname,
+    $name,
+    $description,
+    $language,
+    $opaque,
+    ($invalid == "") ? null : $invalid,
+    ($cv == "") ? null : $cv,
+    $relations["parent"],
+    $relations["broader"],
+    $reference
+  )), "Term added."));
 }
 
 function deleteTerm() {
   global $db;
-  $sn = $GLOBALS["ontomasticon"]["pageInfo"]["active_subsubpage"];
-
-  $sql = "DELETE FROM `terms` WHERE `shortname` = '".$sn."';";
-  $res = $db->query($sql);
+  $id = termID($GLOBALS["ontomasticon"]["pageInfo"]["active_subsubpage"]);
+  if ($id === null) {
+    printError(t("No matching term found"));
+    return(FALSE);
+  }
+  //Unlink terms that refer to this one, so they don't point at a missing term
+  $db->begin_transaction();
+  $ok = dbQuery("UPDATE `terms` SET `parent` = NULL WHERE `parent` = ?;", array($id))
+    && dbQuery("UPDATE `terms` SET `broader` = NULL WHERE `broader` = ?;", array($id))
+    && dbQuery("DELETE FROM `terms` WHERE `id` = ?;", array($id));
+  if ($ok) {
+    $db->commit();
+    return(TRUE);
+  }
+  $error = dbError();
+  $db->rollback();
+  printError(t("Could not delete").": ".$error);
+  return(FALSE);
 }

@@ -1,19 +1,19 @@
-<h1><?php print t("Create user"); ?></h1>
+<h2><?php print t("Create user"); ?></h2>
 
 <?php
 if (!userAllow("create-user")) {
   print t("You do not have permission to create users");
 } else {
-  global $db;
   if(isset($_POST['submit'])){
     createUser();
   }
   ?>
-  <form action="<?php echo $_SERVER['PHP_SELF']?>" method="post">
+  <form action="<?php print formAction(); ?>" method="post"><?php print csrfField(); ?>
     <input type="text" name="first_name" value="" placeholder="<?php print t("First name"); ?>">
     <input type="text" name="surname" value="" placeholder="<?php print t("Surname"); ?>">
     <input type="text" name="email" value="" placeholder="<?php print t("Email"); ?>">
     <input type="password" name="password" value="" placeholder="<?php print t("Password"); ?>">
+    <?php print roleSelect(); ?>
     <button type="submit" name="submit"><?php print t("Create user"); ?></button>
   </form>
   <?php

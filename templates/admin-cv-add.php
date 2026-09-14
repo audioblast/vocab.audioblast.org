@@ -1,7 +1,7 @@
 <h2><?php print t("Controlled vocabularies"); ?></h2>
 
 <?php
-if (!userAllow("administer")) {
+if (!userAllow("create-cv")) {
   print t("You do not have permission to administer this site");
 } else {
   if(isset($_POST['submit'])){
@@ -9,7 +9,7 @@ if (!userAllow("administer")) {
   }
   ?>
   <h3><?php print t("Add controlled vocabulary"); ?></h3>
-  <form action="<?php echo $_SERVER['PHP_SELF']?>" method="post">
+  <form action="<?php print formAction(); ?>" method="post"><?php print csrfField(); ?>
     <label for="shortname"><?php print t("Shortname"); ?></label><br/>
     <input type="text" id="shortname" name="shortname"
            placeholder="">
