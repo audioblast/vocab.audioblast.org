@@ -2,7 +2,7 @@
   <?php
   $links = array();
   if (userAllow("administer")) {
-    $links[] = l("Configure site", "/admin/configure");
+    $links[] = l("Configure site", "/admin/config");
   }
   if (userAllow("manage-users")) {
     $links[] = l("Users", "/admin/users");
@@ -12,6 +12,7 @@
   }
   if (userAllow("edit-terms")) {
     $links[] = l("Add term", "/admin/term/add");
+    $links[] = l("Linked data readiness", "/admin/readiness");
   }
   print implode(" | ", $links);
   ?>
@@ -50,6 +51,9 @@ switch ($GLOBALS["ontomasticon"]["pageInfo"]["active_page"]) {
     break;
   case "update":
     template("update.php");
+    break;
+  case "readiness":
+    template("admin-readiness.php");
     break;
   case "config":
   default:

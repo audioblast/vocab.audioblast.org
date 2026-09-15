@@ -63,9 +63,20 @@ function lang_jibberish() {
     "Controlled vocabulary added." => "New weird word list recorded.",
     "No matching term found" => "That jabber has flown away",
     "Not saved. A short name is required." => "Nothing scribbled. Jabber is required.",
+    "Not saved. A short name can only use the letters A to Z, digits, hyphens, underscores and full stops, and can't start with a full stop." => "Nothing scribbled. Jabber may only hold plain letters, digits, dashes, underscores and dots, and can't begin with a dot.",
     "Not saved. There is already a term with the short name" => "Nothing scribbled. This jabber is taken:",
     "Not saved. There is no term with the short name" => "Nothing scribbled. No such jabber:",
-    "Not saved. There is already a controlled vocabulary with the short name" => "Nothing scribbled. This weird word list exists already:"
+    "Not saved. There is already a controlled vocabulary with the short name" => "Nothing scribbled. This weird word list exists already:",
+    "Not saved. A short name made only of digits can only be used for an opaque term, as it could be mistaken for another term's id." => "Nothing scribbled. Jabber of nothing but numbers must wear a mask, or it will be taken for a counting rhyme.",
+    "Not saved. The site's own pages or files already use this address, so the short name can only be used for a term in a controlled vocabulary or an opaque term:" => "Nothing scribbled. The dragon already lives at this jabber, so only masked jabber or jabber in a weird word list may use it:",
+    "Not saved. A term can't be its own parent or broader term." => "Nothing scribbled. Jabber cannot be its own mother or its own mudflats.",
+    "Not saved. Following the parent or broader terms up from this term leads back to the term being saved, which would make a loop:" => "Nothing scribbled. Climbing the mothers or mudflats of this jabber leads straight back here, and the dragon would chase its own tail:",
+    "Not saved. The language must be a language tag such as en, pt-BR or zh-Hant, with hyphens rather than underscores." => "Nothing scribbled. The tongue must be a proper tongue tag like en, pt-BR or zh-Hant, joined with dashes and never underscores.",
+    "Not saved. A language tag can be at most 35 characters long." => "Nothing scribbled. A tongue tag may be no longer than 35 letters.",
+    "Not deleted. These terms are synonyms of this term. Change their parent, or delete them, first:" => "Nothing vanished. These doppelgangers cling to this jabber. Find them a new mother, or vanish them, first:",
+    "Not deleted. Terms outside this controlled vocabulary are synonyms of its terms. Change their parent, or delete them, first:" => "Nothing vanished. Doppelgangers outside this weird word list cling to its jabber. Find them a new mother, or vanish them, first:",
+    "Term languages can now be up to 35 characters long." => "Tongue tags may now stretch to 35 letters.",
+    "Updating term languages failed" => "The tongues refused to stretch"
   );
   return($ret);
 }

@@ -1,7 +1,7 @@
 <?php
-//format=jsonld returns the term as a SKOS concept in JSON-LD; otherwise the term's database row is returned
-$jsonld = (isset($_GET["format"]) && $_GET["format"] == "jsonld");
-header(($jsonld) ? 'Content-Type: application/ld+json; charset=utf-8' : 'Content-Type: application/json; charset=utf-8');
+//format=jsonld or format=ttl returns the term as a SKOS concept in JSON-LD or Turtle;
+//otherwise the term's database row is returned as JSON
+$format = formatParameter();
 $term = null;
 if (isset($_GET["term"])) {
   //Term URLs are https://host/name or https://host/cv/cv_name#name, where
@@ -15,7 +15,7 @@ if (isset($_GET["term"])) {
   }
   if ($name !== null) {
     $term = getTerm($name);
-    if ($term == null && ctype_digit($name)) {
+    if ($term == null && preg_match('/^[0-9]+$/D', $name) === 1) {
       $term = getTermByID($name);
       //Only opaque terms are identified by their id
       if ($term != null && $term["opaque"] != 1) {
@@ -27,16 +27,12 @@ if (isset($_GET["term"])) {
    $term = getTerm($_GET["shortname"]);
 }
 
-if ($jsonld) {
-  if ($term == null) {
-    http_response_code(404);
-    print("null");
-  } else {
-    print(toJSON(termJSONLD(Term::findByID($term["id"])), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-  }
+if ($format !== null) {
+  printRDF(($term == null) ? null : termJSONLD(Term::findByID($term["id"])), $format);
   exit;
 }
 
+header('Content-Type: application/json; charset=utf-8');
 if ($term != null) {
   $term["url"] = term2URI($term);
   //Values are returned as strings, as they were before the database code used prepared statements

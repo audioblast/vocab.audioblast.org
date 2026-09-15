@@ -1,0 +1,21 @@
+<?php
+//RDF for the site's own addresses, for clients that ask for JSON-LD or Turtle (see requestedFormat()): the
+//site's scheme at /, a vocabulary's scheme at /cv/shortname, and a term outside a vocabulary at its URI
+$page = $GLOBALS["ontomasticon"]["pageInfo"];
+$data = null;
+if ($page["page_type"] == "home") {
+  $vocabulary = Vocabulary::site();
+  $data = vocabularyJSONLD($vocabulary, $vocabulary->terms());
+} elseif ($page["page_type"] == "cv" && $page["active_page"] != "") {
+  $vocabulary = Vocabulary::find($page["active_page"]);
+  if ($vocabulary != null) {
+    $data = vocabularyJSONLD($vocabulary, $vocabulary->terms());
+  }
+} elseif ($page["page_type"] == "term") {
+  $term = Term::findByURI(siteURL().rawurldecode($page["active_page"]));
+  if ($term != null) {
+    $data = termJSONLD($term);
+  }
+}
+
+printRDF($data, requestedFormat());
