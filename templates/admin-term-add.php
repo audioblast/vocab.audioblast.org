@@ -18,6 +18,11 @@ if (!userAllow("edit-terms")) {
     <input type="text" id="name" name="name"
            placeholder="">
            <br/><br/>
+    <label for="acronym"><?php print t("Acronym"); ?></label><br/>
+    <small><?php print t("An acronym or initialism the term is also known by, for example PAM for passive acoustic monitoring"); ?></small><br/>
+    <input type="text" id="acronym" name="acronym" maxlength="<?php print TERM_ACRONYM_LENGTH; ?>"
+           placeholder="">
+           <br/><br/>
     <label for="description"><?php print t("Description"); ?></label><br/>
     <textarea id="description" name="description" rows="4" cols="50"></textarea><br/>
     <label for="language"><?php print t("Language"); ?></label><br/>
@@ -71,9 +76,9 @@ if (!userAllow("edit-terms")) {
     <input type="text" id="broader" name="broader"
            placeholder="">
            <br/><br/>
-    <label for="reference"><?php print t("Reference"); ?></label><br/>
-    <input type="text" id="reference" name="reference"
-           placeholder="">
+    <label for="reference"><?php print t("References"); ?></label><br/>
+    <small><?php print t("One reference per line. In the definition, [1] is the first reference, [2] the second, and so on."); ?></small><br/>
+    <textarea id="reference" name="reference" rows="3" cols="50"></textarea>
            <br/><br/>
     <button type="submit" name="submit"><?php print t("Save"); ?></button>
   </form>

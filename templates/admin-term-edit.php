@@ -32,6 +32,12 @@ if (!userAllow("edit-terms")) {
            value="<?php print h($sn["name"]); ?>"
            placeholder="">
            <br/><br/>
+    <label for="acronym"><?php print t("Acronym"); ?></label><br/>
+    <small><?php print t("An acronym or initialism the term is also known by, for example PAM for passive acoustic monitoring"); ?></small><br/>
+    <input type="text" id="acronym" name="acronym" maxlength="<?php print TERM_ACRONYM_LENGTH; ?>"
+           value="<?php print h(isset($sn["acronym"]) ? $sn["acronym"] : ""); ?>"
+           placeholder="">
+           <br/><br/>
     <label for="description"><?php print t("Description"); ?></label><br/>
     <textarea id="description" name="description" rows="4" cols="50"><?php print h($sn["description"]);?></textarea><br/>
     <label for="language"><?php print t("Language"); ?></label><br/>
@@ -89,10 +95,9 @@ if (!userAllow("edit-terms")) {
            value="<?php print ($sn["broader"]=="") ? "" : htmlspecialchars($sn["broader"]); ?>"
            placeholder="">
            <br/><br/>
-    <label for="reference"><?php print t("Reference"); ?></label><br/>
-    <input type="text" id="reference" name="reference"
-           value="<?php print ($sn["reference"]=="") ? "" : htmlspecialchars($sn["reference"]); ?>"
-           placeholder="">
+    <label for="reference"><?php print t("References"); ?></label><br/>
+    <small><?php print t("One reference per line. In the definition, [1] is the first reference, [2] the second, and so on."); ?></small><br/>
+    <textarea id="reference" name="reference" rows="3" cols="50"><?php print h($sn["reference"]); ?></textarea>
            <br/><br/>
     <button type="submit" name="submit"><?php print t("Save"); ?></button>
     <button type="submit" name="delete"><?php print t("Delete"); ?></button>

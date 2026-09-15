@@ -39,6 +39,10 @@ if (!userAllow("administer")) {
            placeholder=""><br/><br/>
     <label for="description"><?php print t("Description"); ?></label><br/>
     <textarea id="description" name="description" rows="4" cols="50"><?php print h($GLOBALS["ontomasticon"]["config"]["description"]);?></textarea><br/><br/>
+    <label for="glossary_display"><?php print t("Glossary"); ?></label><br/>
+    <small><?php print t("This site is a glossary. Terms are listed in alphabetical order under a heading for each letter, with links from A to Z at the top and bottom of the list, and their acronyms are listed too. In linked data, the words for each term (its name, acronym and synonyms) are also published as a dictionary would publish them, with OntoLex and LexInfo."); ?></small><br/>
+    <input type="checkbox" id="glossary_display" name="glossary_display" value="1" <?php print bool2check(configValue("glossary_display")); ?>>
+    <br/><br/>
     <label for="license"><?php print t("License"); ?></label><br/>
     <small><?php print t("The web address of the license the vocabularies are published under, for example https://creativecommons.org/licenses/by/4.0/"); ?></small><br/>
     <input type="text" id="license" name="license"

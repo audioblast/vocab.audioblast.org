@@ -7,12 +7,12 @@
 <meta name="Generator" content="Ontomasticon (https://ontomasticon.github.io/)"/>
 <meta name="author" content="<?php print h($GLOBALS["ontomasticon"]["config"]["author"]); ?>">
 <meta name="description" content="<?php print h(pageDescription()); ?>">
-<link rel="stylesheet" type="text/css" href="<?php print h(sitePath("/css/default.css")); ?>" />
+<link rel="stylesheet" type="text/css" href="<?php print h(assetPath("/css/default.css")); ?>" />
 <link rel="icon" type="image/png" href="<?php print h(sitePath("/images/ontomasticon.png")); ?>">
 <?php
 if (file_exists("settings/user.css")) {
   ?>
-  <link rel="stylesheet" type="text/css" href="<?php print h(sitePath("/settings/user.css")); ?>" />
+  <link rel="stylesheet" type="text/css" href="<?php print h(assetPath("/settings/user.css")); ?>" />
   <?php
 }
 if (canonicalURL() !== null) {
@@ -30,7 +30,14 @@ $structuredData = pageStructuredData();
 if ($structuredData !== null) {
   print schemaOrgScript($structuredData);
 }
+if (searchPage()) {
+  //Search results change as terms are edited, and each search would be a page of its own
+  ?>
+  <meta name="robots" content="noindex" />
+  <?php
+}
 ?>
+<script src="<?php print h(assetPath("/js/search.js")); ?>" defer></script>
 </head>
 
 <body>
@@ -42,6 +49,19 @@ if ($structuredData !== null) {
     <h1 id="site_title"><?php print h(tu("site_name")); ?></h1>
   </div>
   <div id="menu">
+    <form id="term-search" role="search" action="<?php print h(sitePath("/")); ?>" method="get"
+          data-suggestions="<?php print h(sitePath("/api/search/")); ?>" data-synonym-of="<?php print h(t("Synonym of")); ?>">
+      <label for="term-search-input" class="visually-hidden"><?php print h(t("Search terms")); ?></label>
+      <input type="search" id="term-search-input" name="q" value="<?php print h(searchPage() ? searchQuery() : ""); ?>"
+             placeholder="<?php print h(t("Search terms")); ?>" autocomplete="off" />
+      <?php
+      //Keep a language chosen with ?lang=, as links do (see l())
+      if (isset($_GET["lang"])) {
+        print '<input type="hidden" name="lang" value="'.h(detectLanguage()).'" />';
+      }
+      ?>
+      <button type="submit"><?php print h(t("Search")); ?></button>
+    </form>
     <p><?php print tu("description"); ?></p>
     <p>You can ask questions, suggest new terms or propose modifications at our
       <a href="https://github.com/audioblast/vocabularies"> GitHub repository</a>.</p>
