@@ -1,4 +1,16 @@
 <?php
+//The search box in the page header shows its results on the home page
+if (searchPage()) {
+  ?>
+  <div class="feature-container">
+  <div class="feature">
+  <?php template("search.php"); ?>
+  </div>
+  </div>
+  <?php
+  return;
+}
+
 global $db;
 if ($GLOBALS["ontomasticon"]["cv_count"] > 0) {
   ?>
@@ -17,14 +29,8 @@ if ($GLOBALS["ontomasticon"]["cv_count"] > 0) {
 <div class="feature">
 <h2>Terms</h2>
 <?php
-$terms = getTerms();
-$oe = 1;
-foreach ($terms as $term) {
-  $GLOBALS["ontomasticon"]["term"] = $term;
-  $GLOBALS["ontomasticon"]["oddeven"] = oe($oe);
-  template("term-fragment.php");
-  $oe *= -1;
-}
+$GLOBALS["ontomasticon"]["terms"] = getTerms();
+template("term-list.php");
 ?>
 </div>
 </div>

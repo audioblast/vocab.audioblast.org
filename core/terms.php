@@ -49,6 +49,95 @@ function getTerms($cv=null) {
   return(withTermRelations($ret));
 }
 
+//The most characters of a search that are used
+define("SEARCH_QUERY_LENGTH", 100);
+
+//The text searched for with ?q=, without spaces around it and cut to SEARCH_QUERY_LENGTH characters, or "" if there is none
+function searchQuery() {
+  if (!isset($_GET["q"]) || !is_string($_GET["q"])) {
+    return("");
+  }
+  preg_match('/^.{0,'.SEARCH_QUERY_LENGTH.'}/us', validUTF8(trim($_GET["q"])), $matches);
+  return(trim($matches[0]));
+}
+
+//A pattern for LIKE ... ESCAPE '|' matching text that contains $text, or that starts with it if $start is TRUE.
+//LIKE's wildcards in $text only match themselves.
+function likePattern($text, $start = FALSE) {
+  $escaped = str_replace(array("|", "%", "_"), array("||", "|%", "|_"), $text);
+  return((($start) ? "" : "%").$escaped."%");
+}
+
+//Terms whose name, short name or acronym contains $query, to suggest as a visitor types a search: at most $limit, those
+//whose name, short name or acronym starts with it first, then in order of name. A synonym leads to the term it is a
+//synonym of, and only one suggestion leads to each term. Each is array("name", "shortname", "acronym" (or NULL), "uri"
+//(of the term it leads to), "vocabulary" (the name of that term's vocabulary, or NULL), "synonym_of" (the name of that
+//term for a synonym, or NULL)).
+function termSuggestions($query, $limit = 10) {
+  if ($query === "") {
+    return(array());
+  }
+  $contains = likePattern($query);
+  $starts = likePattern($query, TRUE);
+  $sql  = "SELECT * FROM ".table("terms")." WHERE (`invalid_reason` IS NULL OR `invalid_reason` = 'Synonym') ";
+  $sql .= "AND (`name` LIKE ? ESCAPE '|' OR `shortname` LIKE ? ESCAPE '|' OR `acronym` LIKE ? ESCAPE '|') ";
+  //Synonyms of terms already suggested are left out, so there are spare rows to fill the list
+  $sql .= "ORDER BY (`name` LIKE ? ESCAPE '|' OR `shortname` LIKE ? ESCAPE '|' OR `acronym` LIKE ? ESCAPE '|') DESC, `name`, `shortname` LIMIT ".((int)$limit * 2).";";
+  $result = dbQuery($sql, array($contains, $contains, $contains, $starts, $starts, $starts));
+  $rows = ($result) ? $result->fetch_all(MYSQLI_ASSOC) : array();
+
+  $parentIds = array();
+  foreach ($rows as $row) {
+    if ($row["invalid_reason"] == "Synonym" && $row["parent"] != "") {
+      $parentIds[] = $row["parent"];
+    }
+  }
+  $parents = termsGroupedBy("id", "SELECT * FROM ".table("terms")." WHERE `id` IN (%s) AND `invalid_reason` IS NULL;", array_values(array_unique($parentIds)));
+  $CVs = isset($GLOBALS["ontomasticon"]["CVs"]) ? $GLOBALS["ontomasticon"]["CVs"] : array();
+
+  $suggestions = array();
+  foreach ($rows as $row) {
+    $target = $row;
+    $synonymOf = null;
+    if ($row["invalid_reason"] == "Synonym") {
+      if (!isset($parents[$row["parent"]])) {
+        continue;
+      }
+      $target = $parents[$row["parent"]][0];
+      $synonymOf = glossaryLabel($target);
+    }
+    if (isset($suggestions[$target["id"]]) || count($suggestions) >= $limit) {
+      continue;
+    }
+    $suggestions[$target["id"]] = array(
+      "name" => glossaryLabel($row),
+      "shortname" => $row["shortname"],
+      "acronym" => (isset($row["acronym"]) && $row["acronym"] != "") ? $row["acronym"] : null,
+      "uri" => term2URI($target),
+      "vocabulary" => ($target["cv"] != "" && isset($CVs[$target["cv"]])) ? $CVs[$target["cv"]]["name"] : null,
+      "synonym_of" => $synonymOf
+    );
+  }
+  return(array_values($suggestions));
+}
+
+//Valid terms for the page of results of a search, with their related terms (see withTermRelations()): those whose name,
+//short name, acronym or definition contains $query, or that have a synonym whose name, short name or acronym does. Terms
+//whose name starts with it come first, then in order of name.
+function searchTerms($query) {
+  if ($query === "") {
+    return(array());
+  }
+  $contains = likePattern($query);
+  $sql  = "SELECT * FROM ".table("terms")." WHERE `invalid_reason` IS NULL ";
+  $sql .= "AND (`name` LIKE ? ESCAPE '|' OR `shortname` LIKE ? ESCAPE '|' OR `acronym` LIKE ? ESCAPE '|' OR `description` LIKE ? ESCAPE '|' ";
+  $sql .= "OR `id` IN (SELECT `parent` FROM ".table("terms")." WHERE `invalid_reason` = 'Synonym' AND (`name` LIKE ? ESCAPE '|' OR `shortname` LIKE ? ESCAPE '|' OR `acronym` LIKE ? ESCAPE '|'))) ";
+  $sql .= "ORDER BY `name` LIKE ? ESCAPE '|' DESC, `name`, `shortname`;";
+  $result = dbQuery($sql, array($contains, $contains, $contains, $contains, $contains, $contains, $contains, likePattern($query, TRUE)));
+  $rows = ($result) ? $result->fetch_all(MYSQLI_ASSOC) : array();
+  return(withTermRelations($rows));
+}
+
 //A term with its related terms (see withTermRelations()), for the term's own page, or NULL if no term has this id
 function getTermForPage($id) {
   $result = dbQuery("SELECT * FROM ".table("terms")." WHERE `id` = ?;", array($id));
@@ -57,25 +146,33 @@ function getTermForPage($id) {
 }
 
 //Rows of the terms table, each with the terms related to it for showing on a page: "children" (terms it is the parent
-//of), "narrower" (valid terms it is the broader term of) and "broader" (its broader term as a list, if it is valid).
+//of), "parent_term" (its parent term as a list, so a synonym shows the term it is a synonym of), "narrower" (valid terms
+//it is the broader term of) and "broader" (its broader term as a list, if it is valid).
 //The related terms of the whole list are fetched at once, rather than for each term.
 function withTermRelations($ret) {
   $ids = array_column($ret, "id");
   $broaderIds = array();
+  $parentIds = array();
   foreach ($ret as $row) {
     if ($row["broader"] != "") {
       $broaderIds[] = $row["broader"];
     }
+    if ($row["parent"] != "") {
+      $parentIds[] = $row["parent"];
+    }
   }
   $broaderIds = array_values(array_unique($broaderIds));
+  $parentIds = array_values(array_unique($parentIds));
 
   $children = termsGroupedBy("parent", "SELECT * FROM ".table("terms")." WHERE `parent` IN (%s) ORDER BY `invalid_reason`;", $ids);
+  $parents  = termsGroupedBy("id", "SELECT * FROM ".table("terms")." WHERE `id` IN (%s);", $parentIds);
   $narrower = termsGroupedBy("broader", "SELECT * FROM ".table("terms")." WHERE `broader` IN (%s) AND `invalid_reason` IS NULL ORDER BY `shortname`;", $ids);
   $broader  = termsGroupedBy("id", "SELECT * FROM ".table("terms")." WHERE `id` IN (%s) AND `invalid_reason` IS NULL;", $broaderIds);
 
   $out = array();
   foreach ($ret as $row) {
     $row["children"] = isset($children[$row["id"]]) ? $children[$row["id"]] : array();
+    $row["parent_term"] = ($row["parent"] != "" && isset($parents[$row["parent"]])) ? $parents[$row["parent"]] : array();
     $row["narrower"] = isset($narrower[$row["id"]]) ? $narrower[$row["id"]] : array();
     if ($row["broader"] != "") {
       $row["broader"] = isset($broader[$row["broader"]]) ? $broader[$row["broader"]] : array();
@@ -101,6 +198,78 @@ function termsGroupedBy($column, $sql, $ids) {
     $result->close();
   }
   return($grouped);
+}
+
+//Whether the site is a glossary. A glossary lists its terms in alphabetical order under a heading for each letter, with
+//links to the letters above and below the list and its terms' acronyms listed too, and gives the words for its terms as
+//lexical entries in RDF (see termLexicalEntries()). The setting was first only for showing terms, hence its name.
+function isGlossary() {
+  return(configValue("glossary_display") == "1");
+}
+
+//Rows of the terms table for a glossary: the terms, and for each term with an acronym other than its name, a row
+//array("name" => the acronym, "shortname" => the term's shortname, "see" => the term) listing the acronym as well
+function glossaryEntries($terms) {
+  $entries = $terms;
+  foreach ($terms as $term) {
+    $acronym = isset($term["acronym"]) ? trim((string)$term["acronym"]) : "";
+    if ($acronym != "" && strcasecmp($acronym, glossaryLabel($term)) != 0) {
+      $entries[] = array("name" => $acronym, "shortname" => $term["shortname"], "see" => $term);
+    }
+  }
+  return($entries);
+}
+
+//The name a term is listed under in a glossary: its name, or its shortname if it has none
+function glossaryLabel($term) {
+  $name = trim((string)$term["name"]);
+  return(($name == "") ? (string)$term["shortname"] : $name);
+}
+
+//The letter from A to Z a term is listed under in a glossary, or "#" for a name that doesn't start with one of them
+function glossaryLetter($term) {
+  $letter = strtoupper(substr(glossaryLabel($term), 0, 1));
+  return((preg_match('/^[A-Z]$/D', $letter) === 1) ? $letter : "#");
+}
+
+//The id of a letter's heading in a glossary. Shortnames can't contain a colon, so it can't be the same as a term's id.
+function glossaryAnchor($letter) {
+  return("glossary:".(($letter == "#") ? "other" : $letter));
+}
+
+//Rows of the terms table grouped by glossaryLetter(), as letter => terms, with the letters in order ("#" first) and the
+//terms under each in alphabetical order, ignoring case
+function glossaryGroups($terms) {
+  usort($terms, function($a, $b) {
+    $compare = strnatcasecmp(glossaryLabel($a), glossaryLabel($b));
+    return(($compare != 0) ? $compare : strcmp($a["shortname"], $b["shortname"]));
+  });
+  $byLetter = array();
+  foreach ($terms as $term) {
+    $byLetter[glossaryLetter($term)][] = $term;
+  }
+  $groups = array();
+  foreach (array_merge(array("#"), range("A", "Z")) as $letter) {
+    if (isset($byLetter[$letter])) {
+      $groups[$letter] = $byLetter[$letter];
+    }
+  }
+  return($groups);
+}
+
+//Links to each letter of a glossary, given as glossaryGroups(). Every letter from A to Z is shown, but only those with
+//terms are links; "#" is only shown if some terms are listed under it.
+function glossaryIndex($groups) {
+  $letters = array_merge(isset($groups["#"]) ? array("#") : array(), range("A", "Z"));
+  $items = array();
+  foreach ($letters as $letter) {
+    if (isset($groups[$letter])) {
+      $items[] = '<a href="#'.h(glossaryAnchor($letter)).'">'.h($letter).'</a>';
+    } else {
+      $items[] = '<span class="glossary-index-empty">'.h($letter).'</span>';
+    }
+  }
+  return('<nav class="glossary-index" aria-label="'.h(t("Terms by letter")).'">'.implode(" ", $items).'</nav>');
 }
 
 //The URI of a term given as a row of the terms table, or a link to it
@@ -195,6 +364,18 @@ function termLanguageError($language) {
   }
   if (strlen($language) > TERM_LANGUAGE_LENGTH) {
     return(t("Not saved. A language tag can be at most 35 characters long."));
+  }
+  return(null);
+}
+
+//The most characters a term's acronym can have: the size of the database column
+define("TERM_ACRONYM_LENGTH", 50);
+
+//The error explaining why a term can't have an acronym, or NULL if it can. No acronym is always allowed. Bytes are
+//counted, as the mbstring extension isn't always available, so an acronym of other scripts may be refused a little early.
+function termAcronymError($acronym) {
+  if (strlen((string)$acronym) > TERM_ACRONYM_LENGTH) {
+    return(t("Not saved. An acronym can be at most 50 characters long."));
   }
   return(null);
 }
@@ -321,6 +502,11 @@ function editTerm() {
     return(FALSE);
   }
   $name = trim($_POST['name']);
+  $acronym = isset($_POST["acronym"]) ? trim($_POST["acronym"]) : "";
+  if (termAcronymError($acronym) !== null) {
+    printError(termAcronymError($acronym));
+    return(FALSE);
+  }
   $description = trim($_POST['description']);
   $language = trim($_POST['language']);
   if (termLanguageError($language) !== null) {
@@ -330,7 +516,8 @@ function editTerm() {
   $opaque = (isset($_POST["opaque"]) ? 1 : 0);
   $cv = ((!isset($_POST["cv"]) || $_POST["cv"]=="none") ? "" : trim($_POST['cv']));
   $invalid = ((!isset($_POST["invalid"]) || $_POST["invalid"]=="none") ? "" : trim($_POST['invalid']));
-  $reference = trim($_POST['reference']);
+  //One reference per line (see referenceList())
+  $reference = implode("\n", referenceList($_POST['reference']));
   //Moving a term out of a vocabulary, or making it not opaque, can give it a URI it can't use. A term saved with
   //such a URI before this was checked can still be edited, as long as the edit doesn't add a different problem.
   $clash = termShortnameClash($shortname, $cv, $opaque);
@@ -345,11 +532,12 @@ function editTerm() {
     return(FALSE);
   }
 
-  $sql  = "UPDATE ".table("terms")." SET `name` = ?, `description` = ?, `language` = ?, `opaque` = ?, `type` = ?, `range_cv` = ?, `datatype` = ?, ";
+  $sql  = "UPDATE ".table("terms")." SET `name` = ?, `acronym` = ?, `description` = ?, `language` = ?, `opaque` = ?, `type` = ?, `range_cv` = ?, `datatype` = ?, ";
   $sql .= "`invalid_reason` = ?, `cv` = ?, `parent` = ?, `broader` = ?, `reference` = ?, `modified` = UTC_TIMESTAMP() ";
   $sql .= "WHERE `shortname` = ?;";
   return(reportSaved(dbQuery($sql, array(
     $name,
+    ($acronym == "") ? null : $acronym,
     $description,
     $language,
     $opaque,
@@ -384,6 +572,11 @@ function addTerm() {
     return(FALSE);
   }
   $name = trim($_POST['name']);
+  $acronym = isset($_POST["acronym"]) ? trim($_POST["acronym"]) : "";
+  if (termAcronymError($acronym) !== null) {
+    printError(termAcronymError($acronym));
+    return(FALSE);
+  }
   $description = trim($_POST['description']);
   $language = trim($_POST['language']);
   if (termLanguageError($language) !== null) {
@@ -393,7 +586,8 @@ function addTerm() {
   $opaque = (isset($_POST["opaque"]) ? 1 : 0);
   $cv = ((!isset($_POST["cv"]) || $_POST["cv"]=="none") ? "" : trim($_POST['cv']));
   $invalid = ((!isset($_POST["invalid"]) || $_POST["invalid"]=="none") ? "" : trim($_POST['invalid']));
-  $reference = trim($_POST['reference']);
+  //One reference per line (see referenceList())
+  $reference = implode("\n", referenceList($_POST['reference']));
   $clash = termShortnameClash($shortname, $cv, $opaque);
   if ($clash !== null) {
     printError($clash);
@@ -406,11 +600,12 @@ function addTerm() {
     return(FALSE);
   }
 
-  $sql  = "INSERT INTO ".table("terms")." (`shortname`, `name`, `description`, `language`, `opaque`, `type`, `range_cv`, `datatype`, `invalid_reason`, `cv`, `parent`, `broader`, `reference`, `created`, `modified`) ";
-  $sql .= "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP());";
+  $sql  = "INSERT INTO ".table("terms")." (`shortname`, `name`, `acronym`, `description`, `language`, `opaque`, `type`, `range_cv`, `datatype`, `invalid_reason`, `cv`, `parent`, `broader`, `reference`, `created`, `modified`) ";
+  $sql .= "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP());";
   return(reportSaved(dbQuery($sql, array(
     $shortname,
     $name,
+    ($acronym == "") ? null : $acronym,
     $description,
     $language,
     $opaque,

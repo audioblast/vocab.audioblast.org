@@ -42,14 +42,8 @@ if ($GLOBALS["ontomasticon"]["pageInfo"]["active_page"] == "") {
     ?>
     <div class="feature">
     <?php
-    $terms = getTerms($activeCV["shortname"]);
-    $oe = 1;
-    foreach ($terms as $t) {
-      $GLOBALS["ontomasticon"]["term"] = $t;
-      $GLOBALS["ontomasticon"]["oddeven"] = oe($oe);
-      template("term-fragment.php");
-      $oe *= -1;
-    }
+    $GLOBALS["ontomasticon"]["terms"] = getTerms($activeCV["shortname"]);
+    template("term-list.php");
     ?>
     </div>
     <?php
