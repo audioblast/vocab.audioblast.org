@@ -1,25 +1,41 @@
 <!DOCTYPE html>
-<html lang="<?php print h(t($GLOBALS["ontomasticon"]["config"]["default_lang"])); ?>">
+<html lang="<?php print h(currentLanguage()); ?>">
 <head>
 <meta charset = "UTF-8">
-<title><?php print h(tu("site_name")); ?></title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?php print h(pageTitle()); ?></title>
 <meta name="Generator" content="Ontomasticon (https://ontomasticon.github.io/)"/>
 <meta name="author" content="<?php print h($GLOBALS["ontomasticon"]["config"]["author"]); ?>">
-<meta name="description" content="<?php print h(strip_tags(tu("description"))); ?>">
-<link rel="stylesheet" type="text/css" href="/css/default.css" />
-<link rel="icon" type="image/png" href="/images/ontomasticon.png">
+<meta name="description" content="<?php print h(pageDescription()); ?>">
+<link rel="stylesheet" type="text/css" href="<?php print h(sitePath("/css/default.css")); ?>" />
+<link rel="icon" type="image/png" href="<?php print h(sitePath("/images/ontomasticon.png")); ?>">
 <?php
 if (file_exists("settings/user.css")) {
   ?>
-  <link rel="stylesheet" type="text/css" href="/settings/user.css" />
+  <link rel="stylesheet" type="text/css" href="<?php print h(sitePath("/settings/user.css")); ?>" />
   <?php
+}
+if (canonicalURL() !== null) {
+  ?>
+  <link rel="canonical" href="<?php print h(canonicalURL()); ?>" />
+  <?php
+}
+if (linkedDataURL() !== null && !pageNotFound()) {
+  ?>
+  <link rel="alternate" type="application/ld+json" href="<?php print h(linkedDataURL()); ?>" />
+  <link rel="alternate" type="text/turtle" href="<?php print h(linkedDataURL("turtle")); ?>" />
+  <?php
+}
+$structuredData = pageStructuredData();
+if ($structuredData !== null) {
+  print schemaOrgScript($structuredData);
 }
 ?>
 </head>
 
 <body>
 <div id="header">
-  <img src="/images/ontomasticon.svg" id="logo" />
+  <img src="<?php print h(sitePath("/images/ontomasticon.svg")); ?>" id="logo" alt="" />
   <h1 id="site_title"><?php print l(tu("site_name"), "/"); ?></h1>
 </div>
 
@@ -46,6 +62,9 @@ switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
     break;
   case "home":
     template("home.php");
+    break;
+  case "term":
+    template((currentPageTerm() === null) ? "not-found.php" : "term.php");
     break;
   case "user":
     template("user.php");
@@ -74,6 +93,7 @@ switch($GLOBALS["ontomasticon"]["pageInfo"]["page_type"]) {
 <?php print adminLink(); ?><br/>
 <?php print userLink(); ?><br/>
 <?php print logInOut(); ?>
+<?php print languageSwitcher(); ?>
 </div>
 </body>
 

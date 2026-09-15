@@ -42,6 +42,29 @@ if (!userAllow("edit-terms")) {
     <label for="opaque"><?php print t("Opaque"); ?></label><br/>
     <input type="checkbox" id="opaque" name="opaque" value="opaque" <?php print bool2check($sn["opaque"]); ?>>
        <br/><br/>
+    <label for="type-concept"><?php print t("Type"); ?></label><br/>
+    <small><?php print t("A concept is a term or a value, such as a type of call. A property is a characteristic that is measured or recorded, such as pulse duration. A class is a kind of thing, such as a syllable."); ?></small><br/>
+    <?php foreach (termTypeLabels() as $value => $label) { ?>
+      <input type="radio" id="type-<?php print $value; ?>" name="type" value="<?php print $value; ?>" <?php print val2check(termType(isset($sn["type"]) ? $sn["type"] : null), $value); ?>>
+      <label for="type-<?php print $value; ?>"><?php print t($label); ?></label><br/>
+    <?php } ?>
+    <br/>
+    <?php $valuesChoice = termValuesChoice($sn); ?>
+    <label for="values"><?php print t("Values"); ?></label><br/>
+    <small><?php print t("For a property, where its values come from. Other types of term don't have values."); ?></small><br/>
+    <select id="values" name="values">
+      <option value=""><?php print t("Not stated"); ?></option>
+      <optgroup label="<?php print h(t("Controlled vocabularies")); ?>">
+      <?php foreach ($GLOBALS["ontomasticon"]["CVs"] as $CV) { ?>
+        <option value="cv:<?php print h($CV["shortname"]); ?>" <?php print ($valuesChoice == "cv:".$CV["shortname"]) ? "selected" : ""; ?>><?php print h($CV["name"]); ?></option>
+      <?php } ?>
+      </optgroup>
+      <optgroup label="<?php print h(t("Datatypes")); ?>">
+      <?php foreach (termDatatypes() as $value => $datatype) { ?>
+        <option value="datatype:<?php print $value; ?>" <?php print ($valuesChoice == "datatype:".$value) ? "selected" : ""; ?>><?php print h(t($datatype["label"])); ?></option>
+      <?php } ?>
+      </optgroup>
+    </select><br/><br/>
     <label for="nocv"><?php print t("Controlled vocabulary"); ?></label><br/>
     <input type="radio" id="nocv" name="cv" value="none" <?php print val2check($sn["cv"], ""); ?>>
     <label for="nocv"><?php print t("None"); ?></label><br/>
