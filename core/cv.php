@@ -4,17 +4,6 @@
 //
 // Code to handle Controlled Vocabularies (CVs)
 
-function CVcount() {
-  global $db;
-  $result = $db->query("SELECT COUNT(*) AS `count` FROM ".table("cv").";");
-  if (!$result) {
-    return(0);
-  }
-  $row = $result->fetch_assoc();
-  $result->close();
-  return($row["count"]);
-}
-
 function getCVs() {
   global $db;
   $ret = array();
@@ -124,6 +113,7 @@ function deleteCV() {
   //Unlink terms elsewhere that refer to this vocabulary's terms, so they don't point at missing terms
   $ok = dbQuery("UPDATE ".table("terms")." AS `t` JOIN ".table("terms")." AS `d` ON `t`.`parent` = `d`.`id` SET `t`.`parent` = NULL WHERE `d`.`cv` = ?;", array($CV))
     && dbQuery("UPDATE ".table("terms")." AS `t` JOIN ".table("terms")." AS `d` ON `t`.`broader` = `d`.`id` SET `t`.`broader` = NULL WHERE `d`.`cv` = ?;", array($CV))
+    && dbQuery("DELETE FROM ".table("related_terms")." WHERE `term` IN (SELECT `id` FROM ".table("terms")." WHERE `cv` = ?) OR `related` IN (SELECT `id` FROM ".table("terms")." WHERE `cv` = ?);", array($CV, $CV))
     //Properties whose values came from this vocabulary no longer say where their values come from
     && dbQuery("UPDATE ".table("terms")." SET `range_cv` = NULL WHERE `range_cv` = ?;", array($CV))
     && dbQuery("DELETE FROM ".table("terms")." WHERE `cv` = ?;", array($CV))
