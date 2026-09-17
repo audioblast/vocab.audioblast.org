@@ -42,7 +42,7 @@ if ($GLOBALS["ontomasticon"]["pageInfo"]["active_page"] == "") {
     ?>
     <div class="feature">
     <?php
-    $GLOBALS["ontomasticon"]["terms"] = getTerms($activeCV["shortname"]);
+    $GLOBALS["ontomasticon"]["terms"] = validTerms(currentPageTerms());
     template("term-list.php");
     ?>
     </div>

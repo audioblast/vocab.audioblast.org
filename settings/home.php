@@ -11,13 +11,12 @@ if (searchPage()) {
   return;
 }
 
-global $db;
-if ($GLOBALS["ontomasticon"]["cv_count"] > 0) {
+if (count($GLOBALS["ontomasticon"]["CVs"]) > 0) {
   ?>
   <div class="feature-container">
   <div class="feature">
   <?php
-  printCVs(getCVs($db));
+  printCVs($GLOBALS["ontomasticon"]["CVs"]);
   ?>
   <br>
   </div>
@@ -29,7 +28,7 @@ if ($GLOBALS["ontomasticon"]["cv_count"] > 0) {
 <div class="feature">
 <h2>Terms</h2>
 <?php
-$GLOBALS["ontomasticon"]["terms"] = getTerms();
+$GLOBALS["ontomasticon"]["terms"] = validTerms(currentPageTerms());
 template("term-list.php");
 ?>
 </div>
